@@ -24,12 +24,11 @@ fun main() {
             getDestination(humidity, humidity2location)
         }
 
-        println("Puzzle 1: ${locations1.min()}")
+        println("Puzzle 1: ${locations1.min()}") // 218513636
 
         val seeds2 = parseSeedsRanges(rows.first())
         val locations2 = seeds2.map { seedsRange ->
             var minLocation = Long.MAX_VALUE
-            var selectedSeed = 0L
             for (seed in seedsRange) {
                 val soil = getDestination(seed, seed2soil)
                 val fertilizer = getDestination(soil, soil2fertilizer)
@@ -41,14 +40,12 @@ fun main() {
 
                 if (location < minLocation) {
                     minLocation = location
-                    selectedSeed = seed
                 }
             }
-            Triple(seedsRange, selectedSeed, minLocation)
+            minLocation
 
         }
-        println(locations2.sortedBy { it.third })
-        println("Puzzle 2: ${locations2.minOf { it.third }}")
+        println("Puzzle 2: ${locations2.min()}") // 81956384
     }
 
     println("Duration: $duration ms")
@@ -71,8 +68,8 @@ fun parseSourceToDestination(category: String, rows: List<String>): List<Pair<Lo
         .map { row ->
             val (destination, source, length) = row.split(" ")
             Pair(
-                source.toLong()..source.toLong() + length.toLong(),
-                destination.toLong()..destination.toLong() + length.toLong()
+                source.toLong()..<source.toLong() + length.toLong(),
+                destination.toLong()..<destination.toLong() + length.toLong()
             )
         }
 
