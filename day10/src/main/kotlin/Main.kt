@@ -1,7 +1,6 @@
 import kotlin.system.measureTimeMillis
 
 data class Tile(val char: Char, val y: Int, val x: Int)
-data class Loop(val tiles: List<Tile>)
 
 fun main() {
     val duration = measureTimeMillis {
@@ -9,14 +8,9 @@ fun main() {
         val map = input.split("\r\n").map { it.toList() }
         val start = findStart(map)
 
-        // Puzzle 1
         val mappedPipeSystem = mapPipeSystem(map, start)
         println("Puzzle 1: ${mappedPipeSystem.size / 2}")
-
-        // Puzzle 2
-        //val loops = mapLoops(mappedPipeSystem)
-        //println(loops)
-        println("Puzzle 2: ")
+        println("Puzzle 2: ${insideTileCount(mappedPipeSystem)}")
     }
 
     println("Duration: $duration ms")
@@ -46,37 +40,37 @@ fun findStart(map: List<List<Char>>): Tile {
     throw Exception("No start found")
 }
 
-fun mapLoops(pipes: Set<Tile>): Int {
+fun insideTileCount(pipes: List<Tile>): Int {
     val minY = pipes.minBy { it.y }.y
     val maxY = pipes.maxBy { it.y }.y
     val minX = pipes.minBy { it.x }.x
     val maxX = pipes.maxBy { it.x }.x
 
     val pipeMap = Array(maxY - minY + 1) { Array(maxX - minX + 1) { 0 } }
-    //pipes.forEach() { pipeMap[it.y][it.x] = it.stepNumber + 1 }
+    pipes.mapIndexed { index, tile -> pipeMap[tile.y - minY][tile.x - minX] = index + 1 }
 
-    println(minY)
-    println(maxY)
-    println(minX)
-    println(maxX)
-    println(pipes)
-
-    pipeMap.forEach { println(it.joinToString(" ")) }
-
-
-/*    for (y in minY..maxY) {
-        val row = pipes.filter { it.y == y }
-        val minX = row.minBy { it.x }.x
-        val maxX = row.maxBy { it.x }.x
-
-        for (x in minX..maxX) {
-            if (map[y][x] == 'S') {
-                return findPipeSystemLoops(map, Tile(defineStartPipeChar(y, x, map), y, x)).first().tiles.size
+    var directionCounter = 0
+    var insideTileCount = 0
+    for (y in pipeMap.indices) {
+        for (x in pipeMap[y].indices) {
+            if (y == pipeMap.size - 1) {
+                return insideTileCount
+            }
+            val tile = pipeMap[y][x]
+            val tileBelow = pipeMap[y + 1][x]
+            if (tileBelow != 0) {
+                when (tile - tileBelow) {
+                    1 -> directionCounter++
+                    -1 -> directionCounter--
+                }
+            } else {
+                if (directionCounter != 0) {
+                    insideTileCount++
+                }
             }
         }
     }
-*/
-    return 0
+    return insideTileCount
 }
 
 fun defineStartPipeChar(y: Int, x: Int, map: List<List<Char>>): Char {
