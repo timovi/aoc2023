@@ -1,17 +1,29 @@
 import kotlin.system.measureTimeMillis
 
-data class Record(val springs: String, val damagedGroups: List<Int>)
+data class Record(val springs: String, val groups: List<Int>)
+data class CacheKey(val index: Int, val groupLoopIndex: Int, val groupSize: Int)
+val cache = mutableMapOf<CacheKey, Long>()
 
 fun main() {
     val duration = measureTimeMillis {
         val input = {}::class.java.getResource("input.txt").readText()
         val records = input.split("\r\n").map { parseRecord(it) }
 
-        // Puzzle1
+        // Puzzle 1
         val records1 = records.map(::expandRecord1)
-        println("Puzzle 1: ${records1.sumOf(::findPositionCountsOfDamagedGroups)}")
+        val result1 = records1.sumOf {
+            cache.clear()
+            sumOfPositions(it, 0, 0, 0)
+        }
+        println("Puzzle 1: $result1")
 
-        println("Puzzle 2: ")
+        // Puzzle 2
+        val records2 = records.map(::expandRecord2)
+        val result2 = records2.sumOf {
+            cache.clear()
+            sumOfPositions(it, 0, 0, 0)
+        }
+        println("Puzzle 2: $result2")
     }
 
     println("Duration: $duration ms")
@@ -23,59 +35,42 @@ fun parseRecord(row: String): Record {
 }
 
 fun expandRecord1(record: Record): Record {
-    return Record(".${record.springs}.", record.damagedGroups)
+    return Record("${record.springs}.", record.groups)
 }
 
-fun findPositionCountsOfDamagedGroups(record: Record): Long {
-    var positions = listOf(record.springs)
-    for (groupIndex in record.damagedGroups.indices) {
-        val group = record.damagedGroups[groupIndex]
-        val restGroups = record.damagedGroups.drop(groupIndex + 1)
-        val restSpringsMinLength = restGroups.sum() + restGroups.size - 1
+fun expandRecord2(record: Record): Record {
+    val springs = (1..5).joinToString("?") { record.springs }
+    val groups = (1..5).flatMap { record.groups }
+    return Record("${springs}.", groups)
+}
 
-        val newPositions = mutableListOf<String>()
-        for (position in positions) {
-            newPositions += findPositionsOfDamagedGroup(position, group, restSpringsMinLength)
-        }
-        positions = newPositions
+fun sumOfPositions(record: Record, index: Int, groupIndex: Int, groupLoopIndex: Int): Long {
+    val cacheKey = CacheKey(index, groupLoopIndex, groupIndex)
+
+    if (cache.containsKey(cacheKey)) {
+        return cache[cacheKey]!!
     }
-    return positions.filter { !it.contains('#') }.size.toLong()
-}
 
-fun findPositionsOfDamagedGroup(springs: String, groupSize: Int, restSpringsMinLength: Int): List<String> {
-    val positions = mutableListOf<String>()
+    if (index == record.springs.length) {
+        return if (groupIndex == record.groups.size && groupLoopIndex == 0) 1 else 0
+    }
 
-    val startIndex = springs.lastIndexOf('S') + 2
-    for (index in startIndex..<springs.length) {
-        if (springs.length - index < restSpringsMinLength) {
-            return positions
+    var sum = 0L
+
+    if (record.springs[index] in ".?") {
+        if (groupIndex < record.groups.size && groupLoopIndex == record.groups[groupIndex]) {
+            sum += sumOfPositions(record, index + 1, groupIndex + 1, 0)
         }
-
-        val part = springs.drop(index).take(groupSize)
-
-        val group = "#".repeat(groupSize)
-
-        if (groupFits(group, part, index, groupSize, springs)) {
-            positions.add(reservePositions(springs, index, groupSize))
-            return positions
-        }
-
-        val possible = part.replace('?', '#')
-
-        if (groupFits(group, possible, index, groupSize, springs)) {
-            positions.add(reservePositions(springs, index, groupSize))
-        }
-
-        if (part.startsWith('#')) {
-            return positions
+        if (groupLoopIndex == 0) {
+            sum += sumOfPositions(record, index + 1, groupIndex, groupLoopIndex)
         }
     }
-    return positions
-}
 
-fun groupFits(group: String, part: String, index: Int, groupSize: Int, springs: String) =
-    group == part && springs[index - 1] != '#' && springs[index + groupSize] != '#'
+    if (record.springs[index] in "#?") {
+        sum += sumOfPositions(record, index + 1, groupIndex, groupLoopIndex + 1)
+    }
 
-fun reservePositions(springs: String, start: Int, length: Int): String {
-    return springs.replaceRange(start, start + length, "S".repeat(length))
+    cache[cacheKey] = sum
+
+    return sum
 }
