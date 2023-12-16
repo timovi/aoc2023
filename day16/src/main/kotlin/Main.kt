@@ -63,7 +63,6 @@ fun fireBeam(
 
 fun isInsideMap(x: Int, y: Int) = x >= 0 && x < map[0].length && y >= 0 && y < map.size
 
-
 fun nextLocations(x: Int = 0, y: Int = 0, direction: Direction): Set<Triple<Int, Int, Direction>> =
     when (map[y][x]) {
         '.' -> {
