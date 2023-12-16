@@ -1,7 +1,5 @@
 import kotlin.system.measureTimeMillis
 
-val cache = mutableMapOf<String, String>()
-
 var map = mutableListOf<MutableList<Char>>()
 
 enum class Direction {
@@ -13,8 +11,7 @@ enum class Direction {
 
 fun main() {
     val duration = measureTimeMillis {
-        val input = {}::class.java.getResource("input2.txt").readText()
-        val rows = input.split("\r\n")
+        val input = {}::class.java.getResource("input.txt").readText()
 
         // Puzzle 1
         initializeMap(input)
@@ -23,11 +20,7 @@ fun main() {
 
         // Puzzle 2
         initializeMap(input)
-        repeat(100000) { // 1000000000
-            cycle()
-        }
-        map.forEach { row -> println(row.joinToString("")) }
-        println("Puzzle 2: ${calculateLoad()}")
+        println("Puzzle 2: ${runCycles(1000000000)}")
     }
 
     println("Duration: $duration ms")
@@ -37,6 +30,30 @@ fun initializeMap(input: String) {
     map.clear()
     input.split("\r\n").forEach { row -> map.add(row.toMutableList()) }
 }
+
+fun runCycles(maxCycles: Int): Long {
+    val state = mutableMapOf(getState() to 0)
+
+    repeat(1000) { index ->
+        cycle()
+
+        val newState = getState()
+        if (state.contains(newState)) {
+            val loopStart = state[newState]!!
+            val loopSize = index - loopStart
+            val remaining = (maxCycles - index - 1) % loopSize
+            repeat(remaining) {
+                cycle()
+            }
+            return calculateLoad()
+        }
+        state[newState] = index
+    }
+
+    return 0
+}
+
+fun getState() = map.joinToString("|") { row -> row.joinToString("") }
 
 fun cycle() {
     tilt(Direction.NORTH)
@@ -48,73 +65,56 @@ fun cycle() {
 fun tilt(direction: Direction) {
     when(direction) {
         Direction.NORTH -> {
-            for (y in map.indices) {
-                for (x in map[y].indices) {
-                    if (map[y][x] == 'O') {
-                        val valuesBefore = (0..<y).map { i -> map[i][x] }.joinToString("")
-                        val newPosition = newPositionBefore(valuesBefore)
-                        map[y][x] = '.'
-                        map[newPosition][x] = 'O'
-                    }
-                }
+            val maxY = map.size - 1
+            for (x in map[0].indices) {
+                val column = (0..maxY).map { y -> map[y][x] }.joinToString("")
+                val newColumn = tiltColumnToNorth(column)
+                (0..maxY).forEach { y -> map[y][x] = newColumn[y] }
             }
         }
 
         Direction.WEST -> {
             for (y in map.indices) {
-                for (x in map[y].indices) {
-                    if (map[y][x] == 'O') {
-                        val valuesBefore = (0..<x).map { i -> map[y][i] }.joinToString("")
-                        val newPosition = newPositionBefore(valuesBefore)
-                        map[y][x] = '.'
-                        map[y][newPosition] = 'O'
-                    }
-                }
+                val row = map[y].joinToString("")
+                val newRow = tiltRowToWest(row)
+                map[y] = newRow.toMutableList()
             }
         }
 
         Direction.SOUTH -> {
             val maxY = map.size - 1
-            for (y in map.indices.reversed()) {
-                for (x in map[y].indices) {
-                    if (map[y][x] == 'O') {
-                        val valuesAfter = (y+1..maxY).map { i -> map[i][x] }.joinToString("")
-                        val newPosition = newPositionAfter(valuesAfter, y)
-                        map[y][x] = '.'
-                        map[newPosition][x] = 'O'
-                    }
-                }
+            for (x in map[0].indices) {
+                val column = (0..maxY).map { y -> map[y][x] }.joinToString("")
+                val newColumn = tiltColumnToSouth(column)
+                (0..maxY).forEach { y -> map[y][x] = newColumn[y] }
             }
         }
 
         Direction.EAST -> {
-            val maxX = map[0].size - 1
             for (y in map.indices) {
-                for (x in map[y].indices.reversed()) {
-                    if (map[y][x] == 'O') {
-                        val valuesAfter = (x+1..maxX).map { i -> map[y][i] }.joinToString("")
-                        val newPosition = newPositionAfter(valuesAfter, x)
-                        map[y][x] = '.'
-                        map[y][newPosition] = 'O'
-                    }
-                }
+                val row = map[y].joinToString("")
+                val newRow = tiltRowToEast(row)
+                map[y] = newRow.toMutableList()
             }
         }
     }
 }
 
-fun newPositionBefore(row: String): Int {
-    return when (val stop = row.lastIndexOfAny(charArrayOf('O', '#'))) {
-        -1 -> 0
-        else -> stop + 1
-    }
+
+fun tiltColumnToNorth(column: String): String {
+    return column.split("#").joinToString("#") { part -> part.toList().sorted().reversed().joinToString("") }
 }
 
-fun newPositionAfter(row: String, startIndex: Int): Int {
-    return when (val stop = row.indexOfAny(charArrayOf('O', '#'))) {
-        -1 -> startIndex + row.length
-        else -> startIndex + stop
-    }
+fun tiltRowToWest(row: String): String {
+    return row.split("#").joinToString("#") { part -> part.toList().sorted().reversed().joinToString("") }
+}
+
+fun tiltColumnToSouth(column: String): String {
+    return column.split("#").joinToString("#") { part -> part.toList().sorted().joinToString("") }
+}
+
+fun tiltRowToEast(row: String): String {
+    return row.split("#").joinToString("#") { part -> part.toList().sorted().joinToString("") }
 }
 
 fun calculateLoad(): Long {
