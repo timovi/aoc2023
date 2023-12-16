@@ -18,11 +18,27 @@ fun main() {
         println("Puzzle 1: ${energized.size}")
 
         // Puzzle 2
-        println("Puzzle 2: ")
+        val maxY = map.indices.last
+        val maxX = map[0].indices.last
+        val startCoordinates =
+            map[0].indices.map { x -> Triple(x, 0, Direction.DOWN) } +
+            map.indices.map { y -> Triple(maxX, y, Direction.LEFT) } +
+            map[0].indices.map { x -> Triple(x, maxY, Direction.UP) } +
+            map.indices.map { y -> Triple(0, y, Direction.RIGHT) }
+        println("Puzzle 2: ${maxEnergizedFromCoordinates(startCoordinates)}")
     }
 
     println("Duration: $duration ms")
 }
+
+fun maxEnergizedFromCoordinates(coordinates: List<Triple<Int, Int, Direction>>) =
+    coordinates.maxOf { coordinate ->
+        val (x, y, direction) = coordinate
+        val beams = mutableSetOf<Triple<Int, Int, Direction>>()
+        val energized = mutableSetOf<Pair<Int, Int>>()
+        fireBeam(x, y, direction, beams, energized)
+        energized.size
+    }
 
 fun fireBeam(
     x: Int, y: Int, direction: Direction,
