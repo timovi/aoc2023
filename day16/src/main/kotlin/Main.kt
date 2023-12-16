@@ -64,58 +64,35 @@ fun fireBeam(
 fun isInsideMap(x: Int, y: Int) = x >= 0 && x < map[0].length && y >= 0 && y < map.size
 
 fun nextLocations(x: Int = 0, y: Int = 0, direction: Direction): Set<Triple<Int, Int, Direction>> =
-    when (map[y][x]) {
-        '.' -> {
-            when (direction) {
-                Direction.UP -> setOf(Triple(x, y - 1, Direction.UP))
-                Direction.RIGHT -> setOf(Triple(x + 1, y, Direction.RIGHT))
-                Direction.DOWN -> setOf(Triple(x, y + 1, Direction.DOWN))
-                Direction.LEFT -> setOf(Triple(x - 1, y, Direction.LEFT))
-            }
-        }
+    when (map[y][x] to direction) {
+        '.' to Direction.UP -> setOf(Triple(x, y - 1, Direction.UP))
+        '.' to Direction.RIGHT -> setOf(Triple(x + 1, y, Direction.RIGHT))
+        '.' to Direction.DOWN -> setOf(Triple(x, y + 1, Direction.DOWN))
+        '.' to Direction.LEFT -> setOf(Triple(x - 1, y, Direction.LEFT))
 
-        '|' -> {
-            when (direction) {
-                Direction.UP -> setOf(Triple(x, y - 1, Direction.UP))
-                Direction.DOWN -> setOf(Triple(x, y + 1, Direction.DOWN))
-                Direction.LEFT, Direction.RIGHT -> setOf(
-                    Triple(x, y - 1, Direction.UP),
-                    Triple(x, y + 1, Direction.DOWN)
-                )
-            }
-        }
+        '|' to Direction.UP -> setOf(Triple(x, y - 1, Direction.UP))
+        '|' to Direction.DOWN -> setOf(Triple(x, y + 1, Direction.DOWN))
+        '|' to Direction.LEFT,
+        '|' to Direction.RIGHT -> setOf(
+            Triple(x, y - 1, Direction.UP),
+            Triple(x, y + 1, Direction.DOWN))
 
-        '-' -> {
-            when (direction) {
-                Direction.UP, Direction.DOWN -> setOf(
-                    Triple(x - 1, y, Direction.LEFT),
-                    Triple(x + 1, y, Direction.RIGHT)
-                )
+        '-' to Direction.UP,
+        '-' to Direction.DOWN -> setOf(
+            Triple(x - 1, y, Direction.LEFT),
+            Triple(x + 1, y, Direction.RIGHT))
+        '-' to Direction.LEFT -> setOf(Triple(x - 1, y, Direction.LEFT))
+        '-' to Direction.RIGHT -> setOf(Triple(x + 1, y, Direction.RIGHT))
 
-                Direction.LEFT -> setOf(Triple(x - 1, y, Direction.LEFT))
-                Direction.RIGHT -> setOf(
-                    Triple(x + 1, y, Direction.RIGHT)
-                )
-            }
-        }
+        '/' to Direction.UP -> setOf(Triple(x + 1, y, Direction.RIGHT))
+        '/' to Direction.RIGHT -> setOf(Triple(x, y - 1, Direction.UP))
+        '/' to Direction.DOWN -> setOf(Triple(x - 1, y, Direction.LEFT))
+        '/' to Direction.LEFT -> setOf(Triple(x, y + 1, Direction.DOWN))
 
-        '/' -> {
-            when (direction) {
-                Direction.UP -> setOf(Triple(x + 1, y, Direction.RIGHT))
-                Direction.RIGHT -> setOf(Triple(x, y - 1, Direction.UP))
-                Direction.DOWN -> setOf(Triple(x - 1, y, Direction.LEFT))
-                Direction.LEFT -> setOf(Triple(x, y + 1, Direction.DOWN))
-            }
-        }
-
-        '\\' -> {
-            when (direction) {
-                Direction.UP -> setOf(Triple(x - 1, y, Direction.LEFT))
-                Direction.RIGHT -> setOf(Triple(x, y + 1, Direction.DOWN))
-                Direction.DOWN -> setOf(Triple(x + 1, y, Direction.RIGHT))
-                Direction.LEFT -> setOf(Triple(x, y - 1, Direction.UP))
-            }
-        }
-
+        '\\' to Direction.UP -> setOf(Triple(x - 1, y, Direction.LEFT))
+        '\\' to Direction.RIGHT -> setOf(Triple(x, y + 1, Direction.DOWN))
+        '\\' to Direction.DOWN -> setOf(Triple(x + 1, y, Direction.RIGHT))
+        '\\' to Direction.LEFT -> setOf(Triple(x, y - 1, Direction.UP))
+        
         else -> throw Exception("Unknown character")
     }
