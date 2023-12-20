@@ -1,26 +1,11 @@
 import kotlin.system.measureTimeMillis
-
-enum class Comparator {
-    LESS_THAN, GREATER_THAN;
-
-    companion object {
-        fun parse(char: Char): Comparator {
-            return when (char) {
-                '<' -> LESS_THAN
-                '>' -> GREATER_THAN
-                else -> throw IllegalArgumentException("Unknown comparator: $char")
-            }
-        }
-    }
-}
-
 data class Part(
     val categories: Map<Char, Int>
 )
 
 data class Condition(
     val partCategory: Char,
-    val comparator: Comparator,
+    val comparator: Char,
     val comparatorValue: Int,
 )
 
@@ -72,8 +57,9 @@ fun isAccepted(part: Part, node: Node): Boolean {
 
 fun Condition.run(partValue: Int): Boolean {
     return when (this.comparator) {
-        Comparator.LESS_THAN -> partValue < this.comparatorValue
-        Comparator.GREATER_THAN -> partValue > this.comparatorValue
+        '<' -> partValue < this.comparatorValue
+        '>' -> partValue > this.comparatorValue
+        else -> throw IllegalArgumentException("Unknown comparator: $comparator")
     }
 }
 
@@ -104,7 +90,7 @@ fun parseNode(rule: String, restRules: List<String>, workflows: Map<String, List
         return Node(null, nextNode, null, null)
     }
 
-    val condition = Condition(rule[0], Comparator.parse(rule[1]), rule.substring(2, rule.indexOf(":")).toInt())
+    val condition = Condition(rule[0], rule[1], rule.substring(2, rule.indexOf(":")).toInt())
     val next = rule.substring(rule.indexOf(":") + 1)
 
     val nextNodeIfTrue = if (next == "A" || next == "R") {
@@ -125,8 +111,9 @@ fun populateAcceptedPaths(node: Node, previousNodes: List<Node> = emptyList()) {
 
     if (node.ifFalse != null) {
         val newComparatorAndValue = when (node.condition!!.comparator) {
-            Comparator.LESS_THAN -> Comparator.GREATER_THAN to node.condition.comparatorValue - 1
-            Comparator.GREATER_THAN -> Comparator.LESS_THAN to node.condition.comparatorValue + 1
+            '<' -> '>' to node.condition.comparatorValue - 1
+            '>' -> '<' to node.condition.comparatorValue + 1
+            else -> throw IllegalArgumentException("Unknown comparator: ${node.condition.comparator}")
         }
         val newNode = Node(
             Condition(node.condition.partCategory, newComparatorAndValue.first, newComparatorAndValue.second),
@@ -164,8 +151,9 @@ fun acceptedRanges(acceptedPath: List<Node>): Map<Char, IntRange> {
             val comparatorValue = node.condition.comparatorValue
             val range = ranges[partCategory]!!
             val newRange = when (node.condition.comparator) {
-                Comparator.LESS_THAN -> range.first..<comparatorValue
-                Comparator.GREATER_THAN -> (comparatorValue + 1)..range.last
+                '<' -> range.first..<comparatorValue
+                '>' -> (comparatorValue + 1)..range.last
+                else -> throw IllegalArgumentException("Unknown comparator: ${node.condition.comparator}")
             }
 
             if (newRange.first > newRange.last) {
