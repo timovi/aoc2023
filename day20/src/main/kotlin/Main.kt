@@ -33,6 +33,7 @@ val flipFlopStates = mutableMapOf<String, FlipFlopState>()
 
 var lowPulsesCount = 0L
 var highPulsesCount = 0L
+var observedHighPulseModules = mutableMapOf<String, Pulse>()
 
 fun main() {
     val duration = measureTimeMillis {
@@ -48,12 +49,28 @@ fun main() {
         println("Puzzle 1: ${lowPulsesCount * highPulsesCount}")
 
         // Puzzle 2
-        println("Puzzle 2: ")
+        initializeConjuntionMemories()
+        initializeFlipFlopMemories()
+
+        // rx is preceded by hf conjunction so well observe when all
+        // outputs connected to that send a high pulse
+        val hfConnectedMap =
+            modules.filter { it.value.outputs.contains("hf") }.values.associate { it.name to -1L }.toMutableMap()
+        repeat(10000) { pushNumber ->
+            sendLowPulse("broadcaster", hfConnectedMap.keys.toSet())
+
+            hfConnectedMap.keys.forEach {
+                if (hfConnectedMap[it] == -1L && observedHighPulseModules[it] == Pulse.HIGH) {
+                    hfConnectedMap[it] = pushNumber.toLong() + 1
+                }
+            }
+        }
+        println("Puzzle 2: ${hfConnectedMap.values.fold(1L) { x, y -> lcm(x, y) }}")
     }
     println("Duration: $duration ms")
 }
 
-fun sendLowPulse(firstModuleName: String) {
+fun sendLowPulse(firstModuleName: String, observedModuleNames: Set<String> = emptySet()) {
     val stateQueue: Queue<State> = LinkedList()
 
     stateQueue.add(State(getOrPutModule(firstModuleName), Pulse.LOW, "button"))
@@ -61,16 +78,28 @@ fun sendLowPulse(firstModuleName: String) {
     while (stateQueue.isNotEmpty()) {
         val state = stateQueue.remove()
 
-        //if (state.module.type != ModuleType.OUTPUT) {
-            when (state.pulse) {
-                Pulse.LOW -> lowPulsesCount++
-                Pulse.HIGH -> highPulsesCount++
+        when (state.pulse) {
+            Pulse.LOW -> lowPulsesCount++
+            Pulse.HIGH -> highPulsesCount++
+        }
+
+        if (observedModuleNames.contains(state.previousModuleName)) {
+            if (state.pulse == Pulse.HIGH) {
+                observedHighPulseModules[state.previousModuleName] = state.pulse
             }
-        //}
+        }
 
         when (state.module.type) {
             ModuleType.BROADCASTER -> {
-                state.module.outputs.forEach { stateQueue.add(State(getOrPutModule(it), state.pulse, state.module.name)) }
+                state.module.outputs.forEach {
+                    stateQueue.add(
+                        State(
+                            getOrPutModule(it),
+                            state.pulse,
+                            state.module.name
+                        )
+                    )
+                }
             }
 
             ModuleType.FLIP_FLOP -> {
@@ -163,4 +192,12 @@ fun initializeFlipFlopMemories() {
             val name = module.key
             flipFlopStates[name] = FlipFlopState.OFF
         }
+}
+
+private fun gcd(x: Long, y: Long): Long {
+    return if (y == 0L) x else gcd(y, x % y)
+}
+
+fun lcm(a: Long, b: Long): Long {
+    return a * b / (gcd(a, b))
 }
